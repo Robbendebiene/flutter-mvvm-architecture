@@ -1,4 +1,6 @@
+import 'package:flutter/material.dart' hide Action;
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:mobx/mobx.dart';
 
 import 'view_model.dart';
 
@@ -23,6 +25,17 @@ abstract class View<T extends ViewModel> extends StatefulWidget with _GetViewMod
 
   Widget build(BuildContext context);
 
+  /// Override this to add any sort of reactions based on the current view model.
+  ///
+  /// This will be called once by the widget on `initState`.
+  ///
+  /// For every created reaction a respective [ReactionDisposer] must be `yield` so it can be disposed correctly.
+  ///
+  /// **Note:** You must `yield*` the `super` call, otherwise other reaction disposers will be lost wherefore the reactions won't be disposed correctly.
+
+  @mustCallSuper
+  Iterable<ReactionDisposer> hookReactions(BuildContext context, covariant ViewModel vm) sync* {}
+
   @override
   State<View<T>> createState() => _ViewState<T>();
 }
@@ -30,10 +43,14 @@ abstract class View<T extends ViewModel> extends StatefulWidget with _GetViewMod
 class _ViewState<T extends ViewModel> extends State<View<T>> {
   late final T _viewModel;
 
+  late final List<ReactionDisposer> _reactionDisposers;
+
   @override
   void initState() {
     super.initState();
     _viewModel = widget.create();
+    // TODO: Maybe use addPostFrameCallback if the context in the reactions is immeditely used.
+    _reactionDisposers = widget.hookReactions(context, _viewModel).toList(growable: false);
   }
 
   @override
@@ -47,6 +64,9 @@ class _ViewState<T extends ViewModel> extends State<View<T>> {
 
   @override
   void dispose() {
+    for (var disposer in _reactionDisposers) {
+      disposer();
+    }
     _viewModel.dispose();
     super.dispose();
   }
