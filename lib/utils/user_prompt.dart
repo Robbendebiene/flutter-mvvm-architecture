@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mobx/mobx.dart';
 
-import '/codebase/view.dart';
-import '/codebase/view_model.dart';
+import '/base/view.dart';
+import '/base/view_model.dart';
 
 
 class Prompt<R> {
