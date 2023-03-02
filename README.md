@@ -8,7 +8,7 @@ The following architecture is based on the MVVM ([Model View ViewModel](https://
 An app should be built in layers, with each layer sitting on top of another. A class in one layer should only depend on classes in the layer below it. If multiple classes in the same layer need to know the same information, that information should likely be in the layer below those classes.
 
 
-![App-Architecture](img/Architecture.svg)
+![App-Architecture](doc/img/Architecture.svg)
 
 ### Fundamental building blocks:
 - [Views](doc/VIEWS.md)
