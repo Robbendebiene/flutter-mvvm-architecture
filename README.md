@@ -97,28 +97,11 @@ Exception: ephemeral state for base components/reusable widgets (for example Ani
 
 #### How can I trigger dialogs/snack bars from the View Model?
 
-```dart
-@override
-Widget build(BuildContext context) {
-  return ReactionBuilder(
-    builder: (context) {
-      final vm = $<ViewModelB>(context);
+For user prompts use the `PromptMediator` and `PromptHandler` mixins from the utils directory.
 
-      return reaction(
-        (_) => vm.notificationStream, // this has to be the value of an ObservableStream
-        (result) {
-          final messenger = ScaffoldMessenger.of(context);
-          messenger.showSnackBar(
-            SnackBar(content: Text(result)),
-          );
-        }
-      );
-    },
-    child: ...
-  );
-}
+For snack bars use the `NotificationMediator` and `NotificationHandler` mixins from the utils directory..
 
-```
+
 
 #### How to use *MobX* for adding and removing items in animated list widget?
 
