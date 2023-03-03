@@ -28,7 +28,7 @@ class Notification {
 /// Mixin that allows the view model to show notifications to the user.
 ///
 /// It exposes a [notificationRequests] observable stream to the view.
-/// The view can react to them using the [NotificationHandler] or via Mobx reactions.
+/// The view can react to them using the [NotificationHandler].
 ///
 /// Example usage:
 /// ```dart
@@ -50,7 +50,7 @@ class Notification {
 
 mixin NotificationMediator on ViewModel {
   final _streamController = StreamController<Notification>();
-  late final notificationRequests = ObservableStream(_streamController.stream);
+  late final _notificationRequests = ObservableStream(_streamController.stream);
 
   /// Requests input from the view
 
@@ -76,7 +76,7 @@ mixin NotificationMediator on ViewModel {
   @override
   dispose() {
     _streamController.close();
-    notificationRequests.close();
+    _notificationRequests.close();
     super.dispose();
   }
 }
@@ -120,7 +120,7 @@ mixin NotificationHandler<T extends NotificationMediator> on View<T> {
   Iterable<ReactionDisposer> hookReactions(BuildContext context, T vm) sync* {
     yield* super.hookReactions(context, vm);
 
-    yield reaction((_) => vm.notificationRequests.value, (result) {
+    yield reaction((_) => vm._notificationRequests.value, (result) {
       if (result != null) {
         final messenger = ScaffoldMessenger.of(context);
         final controller = messenger.showSnackBar(

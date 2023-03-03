@@ -31,7 +31,7 @@ class Prompt<R> {
 /// Mixin that allows the view model to prompt for user inputs.
 ///
 /// It exposes a [promptRequests] observable stream to the view.
-/// The view can react to them using the [PromptHandler] or via Mobx reactions.
+/// The view can react to them using the [PromptHandler].
 ///
 /// Example usage:
 /// ```dart
@@ -60,7 +60,7 @@ class Prompt<R> {
 
 mixin PromptMediator on ViewModel {
   final _streamController = StreamController<Prompt>();
-  late final promptRequests = ObservableStream(_streamController.stream);
+  late final _promptRequests = ObservableStream(_streamController.stream);
 
   /// Requests input from the view
 
@@ -79,7 +79,7 @@ mixin PromptMediator on ViewModel {
   @override
   dispose() {
     _streamController.close();
-    promptRequests.close();
+    _promptRequests.close();
     super.dispose();
   }
 }
@@ -120,7 +120,7 @@ mixin PromptHandler<T extends PromptMediator> on View<T> {
   Iterable<ReactionDisposer> hookReactions(BuildContext context, T vm) sync* {
     yield* super.hookReactions(context, vm);
 
-    yield reaction((_) => vm.promptRequests.value, (result) async {
+    yield reaction((_) => vm._promptRequests.value, (result) async {
       if (result != null) {
         final response = await showDialog(
           context: context,
