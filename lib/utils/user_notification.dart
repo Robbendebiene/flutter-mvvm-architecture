@@ -117,7 +117,7 @@ mixin NotificationHandler<T extends NotificationMediator> on View<T> {
   }
 
   @override
-  Iterable<ReactionDisposer> hookReactions(BuildContext context, NotificationMediator vm) sync* {
+  Iterable<ReactionDisposer> hookReactions(BuildContext context, T vm) sync* {
     yield* super.hookReactions(context, vm);
 
     yield reaction((_) => vm.notificationRequests.value, (result) {

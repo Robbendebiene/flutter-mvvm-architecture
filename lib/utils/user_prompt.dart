@@ -117,7 +117,7 @@ mixin PromptHandler<T extends PromptMediator> on View<T> {
   }
 
   @override
-  Iterable<ReactionDisposer> hookReactions(BuildContext context, PromptMediator vm) sync* {
+  Iterable<ReactionDisposer> hookReactions(BuildContext context, T vm) sync* {
     yield* super.hookReactions(context, vm);
 
     yield reaction((_) => vm.promptRequests.value, (result) async {
