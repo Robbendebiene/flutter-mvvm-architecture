@@ -6,3 +6,4 @@ export 'base/view.dart';
 export 'base/view_model.dart';
 
 export 'utils/user_prompt.dart';
+export 'utils/user_notification.dart';
