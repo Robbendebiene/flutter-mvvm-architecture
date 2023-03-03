@@ -31,7 +31,7 @@ abstract class View<T extends ViewModel> extends StatefulWidget with _GetViewMod
   ///
   /// For every created reaction a respective [ReactionDisposer] must be `yield` so it can be disposed correctly.
   ///
-  /// **Note:** You must `yield*` the `super` call, otherwise other reaction disposers will be lost wherefore the reactions won't be disposed correctly.
+  /// **Note:** You must `yield*` the `super` call, otherwise other mixed in reactions will be lost.
 
   @mustCallSuper
   Iterable<ReactionDisposer> hookReactions(BuildContext context, covariant ViewModel vm) sync* {}
@@ -59,6 +59,7 @@ class _ViewState<T extends ViewModel> extends State<View<T>> {
     // builder is important here to get the context below the inherited widget (_ViewModelProvider)
     child: Observer(
       builder: widget.build,
+      warnWhenNoObservables: false,
     ),
   );
 

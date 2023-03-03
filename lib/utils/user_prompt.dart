@@ -33,6 +33,7 @@ class Prompt<R> {
 /// It exposes a [promptRequests] observable stream to the view.
 /// The view can react to them using the [PromptHandler] or via Mobx reactions.
 ///
+/// Example usage:
 /// ```dart
 /// class MyViewModel extends ViewModel with PromptMediator {
 ///   void myHeavyFunction() async {
@@ -84,9 +85,22 @@ mixin PromptMediator on ViewModel {
 }
 
 
-/// Used to build and display [Prompt]s from an [ObservableStream].
+/// Used to build and display [Prompt]s from the [PromptMediator].
+///
+/// Example usage:
+/// ```dart
+/// class MyViewModel extends ViewModel with PromptMediator {
+///   ...
+/// }
+///
+/// class MyView extends View<MyViewModel> with PromptHandler {
+///   const MyView({super.key}) : super(create: MyViewModel.new);
+///
+///   ...
+/// }
+/// ```
 
-mixin PromptHandler on View<PromptMediator> {
+mixin PromptHandler<T extends PromptMediator> on View<T> {
 
   /// Override this to build a custom prompt widget dialog.
 
