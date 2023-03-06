@@ -13,9 +13,9 @@ import 'view_model.dart';
 ///   ...
 /// }
 /// ```
-/// Otherwise the view model cannot be found via its type using the `dependOnInheritedWidgetOfExactType` method.
+/// Otherwise the view model cannot be found by any [ViewFragment]s.
 
-abstract class View<T extends ViewModel> extends StatefulWidget with _GetViewModel {
+abstract class View<T extends ViewModel> extends Widget {
   final T Function() create;
 
   const View({
@@ -23,7 +23,7 @@ abstract class View<T extends ViewModel> extends StatefulWidget with _GetViewMod
     super.key,
   });
 
-  Widget build(BuildContext context);
+  Widget build(BuildContext context, T viewModel);
 
   /// Override this to add any sort of reactions based on the current view model.
   ///
@@ -34,45 +34,102 @@ abstract class View<T extends ViewModel> extends StatefulWidget with _GetViewMod
   /// **Note:** You must `yield*` the `super` call, otherwise other mixed in reactions will be lost.
 
   @mustCallSuper
-  Iterable<ReactionDisposer> hookReactions(BuildContext context, covariant ViewModel vm) sync* {}
+  Iterable<ReactionDisposer> hookReactions(BuildContext context, T vm) sync* {}
 
   @override
-  State<View<T>> createState() => _ViewState<T>();
+  Element createElement() => _ViewElement(this);
 }
 
-class _ViewState<T extends ViewModel> extends State<View<T>> {
-  late final T _viewModel;
+class _ViewElement<T extends ViewModel> extends ComponentElement {
+  final T _viewModel;
 
   late final List<ReactionDisposer> _reactionDisposers;
 
+  _ViewElement(View<T> widget) :
+    _viewModel = widget.create(),
+    super(widget) {
+      _reactionDisposers = widget.hookReactions(this, _viewModel).toList(growable: false);
+    }
+
   @override
-  void initState() {
-    super.initState();
-    _viewModel = widget.create();
-    // TODO: Maybe use addPostFrameCallback if the context in the reactions is immeditely used.
-    _reactionDisposers = widget.hookReactions(context, _viewModel).toList(growable: false);
+  Widget build() {
+    return _ViewModelProvider<T>(
+      viewModel: _viewModel,
+      child: Observer(
+        builder: (context) => (widget as View<T>).build(context, _viewModel),
+        name: '$widget',
+        warnWhenNoObservables: false,
+      ),
+    );
   }
 
   @override
-  Widget build(BuildContext context) => _ViewModelProvider<T>(
-    viewModel: _viewModel,
-    // builder is important here to get the context below the inherited widget (_ViewModelProvider)
-    child: Observer(
-      builder: widget.build,
-      warnWhenNoObservables: false,
-    ),
-  );
+  void update(View<T> newWidget) {
+    super.update(newWidget);
+    assert(widget == newWidget);
+    rebuild(force: true);
+  }
 
   @override
-  void dispose() {
+  void unmount() {
+    super.unmount();
     for (var disposer in _reactionDisposers) {
       disposer();
     }
     _viewModel.dispose();
-    super.dispose();
   }
 }
 
+
+/// A widget that depends on a view model but doesn't provide one.
+///
+/// Make sure that the [ViewFragment] is below the [View] with the dependent [ViewModel] in the tree.
+///
+/// Specify the dependant view model like this:
+/// ```
+/// class ExampleViewFragment extends ViewFragment<ExampleViewModel> {
+///   ...
+/// }
+/// ```
+
+abstract class ViewFragment<T extends ViewModel> extends Widget {
+  const ViewFragment({super.key});
+
+  Widget build(BuildContext context, T viewModel);
+
+  @override
+  Element createElement() => _ViewFragmentElement(this);
+}
+
+class _ViewFragmentElement<T extends ViewModel> extends ComponentElement {
+  _ViewFragmentElement(ViewFragment<T> widget) : super(widget);
+
+  @override
+  Widget build() {
+    return Observer(
+      builder: (context) => (widget as ViewFragment<T>).build(context, _viewModel),
+      name: '$widget',
+    );
+  }
+
+  @override
+  void update(ViewFragment<T> newWidget) {
+    super.update(newWidget);
+    assert(widget == newWidget);
+    rebuild(force: true);
+  }
+
+  /// Get a view model of the given type that was declared above in the tree.
+
+  T get _viewModel {
+    final result = dependOnInheritedWidgetOfExactType<_ViewModelProvider<T>>();
+    assert(result != null, 'The ViewFragment "$widget" cannot find "$T" in the current context.');
+    return result!.viewModel;
+  }
+}
+
+
+/// Inherited widget to provide the view model to descendent widgets.
 
 class _ViewModelProvider<VM extends ViewModel> extends InheritedWidget {
   final VM viewModel;
@@ -86,24 +143,5 @@ class _ViewModelProvider<VM extends ViewModel> extends InheritedWidget {
   @override
   bool updateShouldNotify(_ViewModelProvider oldWidget) {
     return viewModel != oldWidget.viewModel;
-  }
-}
-
-/// Any widget that depends on a view model but doesn't provide one.
-
-abstract class ViewFragment extends StatelessObserverWidget with _GetViewModel {
-  const ViewFragment({super.key});
-}
-
-
-
-mixin _GetViewModel {
-
-  /// Get a view model of the given type that was declared above in the tree.
-
-  VM $<VM extends ViewModel>(BuildContext context) {
-    final result = context.dependOnInheritedWidgetOfExactType<_ViewModelProvider<VM>>();
-    assert(result != null, 'No $VM found in context');
-    return result!.viewModel;
   }
 }

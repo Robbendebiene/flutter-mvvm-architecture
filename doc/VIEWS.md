@@ -5,7 +5,7 @@ All of these components can be freely arranged or nested.
 
 ## View
 
-A View encompasses a set of connected screen components. It's main goal is to provide exactly one View Model to it's children. The View Model can be accessed via the View's `BuildContext` using the `$` locator function like so: `$<MyViewModel>(context);`
+A View encompasses a set of connected screen components. It's main goal is to provide exactly one View Model to it's children. The View Model is passed as a second argument in the build function.
 Any Observables (typically provided by a View Model) used inside the build method will automatically rebuild the View.
 
 **Example:**
@@ -17,9 +17,9 @@ class MainView extends View<MainViewModel> {
   }) : super(create: MainViewModel.new);
 
   @override
-  Widget build(BuildContext context) {
-    // Access the view model
-    final vm = $<MainViewModel>(context);
+  Widget build(BuildContext context, MainViewModel viewModel) {
+    // Access the view model property
+    final a = viewModel.a;
     ...
   }
 }
@@ -27,16 +27,16 @@ class MainView extends View<MainViewModel> {
 
 ## View Fragment
 
-View Fragments are a simplified version of Views. They do not provide any View Model themselves, but can use `$` locator function to access any View Models above them. The main use of View Fragment's is to split up large Views into smaller components/fragments. Like Views they will automatically rebuild on any changes to Observables used inside their build method.
+View Fragments are a simplified version of Views. They do not provide any View Model themselves, but can access a View Model above them. The main use of View Fragment's is to split up large Views into smaller components/fragments. Like Views they will automatically rebuild on any changes to Observables used inside their build method.
 
 **Example:**
 
 ```dart
-class MyViewSection extends ViewFragment {
+class MyViewSection extends ViewFragment<MainViewModel> {
   @override
-  Widget build(BuildContext context) {
-    // Access the view model
-    final vm = $<ViewModelB>(context);
+  Widget build(BuildContext context, MainViewModel viewModel) {
+    // Access the view model property
+    final a = viewModel.a;
     ...
   }
 }
