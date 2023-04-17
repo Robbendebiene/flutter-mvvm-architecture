@@ -2,9 +2,6 @@ import 'package:flutter/material.dart' hide Action;
 import 'package:flutter_mvvm_architecture/flutter_mvvm_architecture.dart';
 import 'package:mobx/mobx.dart';
 
-import 'codebase/service.dart';
-import 'codebase/view.dart';
-import 'codebase/view_model.dart';
 
 void main() {
   GetIt.I.registerSingleton<SharedCounter>(SharedCounter());
