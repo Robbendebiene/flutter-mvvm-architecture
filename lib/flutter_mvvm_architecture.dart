@@ -4,6 +4,7 @@ export 'base/repository.dart';
 export 'base/service.dart';
 export 'base/view.dart';
 export 'base/view_model.dart';
+export 'base/record.dart';
 
 export 'utils/user_prompt.dart';
 export 'utils/user_notification.dart';
