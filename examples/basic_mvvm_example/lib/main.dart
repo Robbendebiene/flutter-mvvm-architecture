@@ -1,7 +1,5 @@
-
-
 import 'package:flutter/material.dart' hide Action;
-import 'package:get_it/get_it.dart';
+import 'package:flutter_mvvm_architecture/flutter_mvvm_architecture.dart';
 import 'package:mobx/mobx.dart';
 
 import 'codebase/service.dart';
@@ -35,13 +33,11 @@ class MainView extends View<MainViewModel> {
   }) : super(create: MainViewModel.new);
 
   @override
-  Widget build(BuildContext context) {
-    final vm = $<MainViewModel>(context);
-
+  Widget build(context, viewModel) {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          vm.number,
+          viewModel.number,
         ),
       ),
       body: Column(
@@ -52,7 +48,7 @@ class MainView extends View<MainViewModel> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: vm.decrement,
+        onPressed: viewModel.decrement,
         tooltip: 'Decrement',
         child: const Icon(Icons.remove),
       ),
@@ -66,22 +62,20 @@ class SubViewA extends View<ViewModelA> {
   }) : super(create: ViewModelA.new);
 
   @override
-  Widget build(context) {
+  Widget build(context, viewModel) {
     print('build SubViewA');
-    final vm = $<ViewModelA>(context);
-
     return Center(
       child: Column(
         children: [
           ElevatedButton(
-            onPressed: vm.updateTime,
-            child: Text('time update'),
+            onPressed: viewModel.updateTime,
+            child: const Text('time update'),
           ),
           Text(
-            vm.time,
+            viewModel.time,
           ),
           Text(
-            vm.moneyInEuro,
+            viewModel.moneyInEuro,
           ),
         ],
       ),
@@ -95,15 +89,13 @@ class SubViewB extends View<ViewModelB> {
   }) : super(create: ViewModelB.new);
 
   @override
-  Widget build(context) {
+  Widget build(context, viewModel) {
     print('build SubViewB');
-    final vm = $<ViewModelB>(context);
-
     return Center(
       child: Column(
         children: [
           ElevatedButton(
-            onPressed: vm.increment,
+            onPressed: viewModel.increment,
             child: Text('increment'),
           ),
           Test(),
@@ -113,13 +105,11 @@ class SubViewB extends View<ViewModelB> {
   }
 }
 
-class Test extends ViewFragment {
+class Test extends ViewFragment<ViewModelB> {
   @override
-  Widget build(BuildContext context) {
+  Widget build(context, viewModel) {
     print('build ChildView');
-    final vm = $<ViewModelB>(context);
-
-    return Text(vm.number);
+    return Text(viewModel.number);
   }
 }
 
