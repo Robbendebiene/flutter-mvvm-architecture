@@ -37,15 +37,15 @@ abstract class View<T extends ViewModel> extends Widget {
   Iterable<ReactionDisposer> hookReactions(BuildContext context, T vm) sync* {}
 
   @override
-  Element createElement() => _ViewElement(this);
+  Element createElement() => ViewElement(this);
 }
 
-class _ViewElement<T extends ViewModel> extends ComponentElement {
+class ViewElement<T extends ViewModel> extends ComponentElement {
   final T _viewModel;
 
   late final List<ReactionDisposer> _reactionDisposers;
 
-  _ViewElement(View<T> widget) :
+  ViewElement(View<T> widget) :
     _viewModel = widget.create(),
     super(widget) {
       _reactionDisposers = widget.hookReactions(this, _viewModel).toList(growable: false);
@@ -53,7 +53,7 @@ class _ViewElement<T extends ViewModel> extends ComponentElement {
 
   @override
   Widget build() {
-    return _ViewModelProvider<T>(
+    return ViewModelProvider<T>(
       viewModel: _viewModel,
       child: Observer(
         builder: (context) => (widget as View<T>).build(context, _viewModel),
@@ -98,11 +98,11 @@ abstract class ViewFragment<T extends ViewModel> extends Widget {
   Widget build(BuildContext context, T viewModel);
 
   @override
-  Element createElement() => _ViewFragmentElement(this);
+  Element createElement() => ViewFragmentElement(this);
 }
 
-class _ViewFragmentElement<T extends ViewModel> extends ComponentElement {
-  _ViewFragmentElement(ViewFragment<T> widget) : super(widget);
+class ViewFragmentElement<T extends ViewModel> extends ComponentElement {
+  ViewFragmentElement(ViewFragment<T> widget) : super(widget);
 
   @override
   Widget build() {
@@ -122,7 +122,7 @@ class _ViewFragmentElement<T extends ViewModel> extends ComponentElement {
   /// Get a view model of the given type that was declared above in the tree.
 
   T get _viewModel {
-    final result = dependOnInheritedWidgetOfExactType<_ViewModelProvider<T>>();
+    final result = dependOnInheritedWidgetOfExactType<ViewModelProvider<T>>();
     assert(result != null, 'The ViewFragment "$widget" cannot find "$T" in the current context.');
     return result!.viewModel;
   }
@@ -131,17 +131,17 @@ class _ViewFragmentElement<T extends ViewModel> extends ComponentElement {
 
 /// Inherited widget to provide the view model to descendent widgets.
 
-class _ViewModelProvider<VM extends ViewModel> extends InheritedWidget {
+class ViewModelProvider<VM extends ViewModel> extends InheritedWidget {
   final VM viewModel;
 
-  const _ViewModelProvider({
+  const ViewModelProvider({
     required this.viewModel,
     required super.child,
     super.key,
   });
 
   @override
-  bool updateShouldNotify(_ViewModelProvider oldWidget) {
+  bool updateShouldNotify(ViewModelProvider oldWidget) {
     return viewModel != oldWidget.viewModel;
   }
 }
