@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mobx/mobx.dart';
 
-import '/base/view.dart';
-import '/base/view_model.dart';
+import '/src/base/view.dart';
+import '/src/base/view_model.dart';
 
 typedef SnackbarCloseCallback = void Function(SnackBarClosedReason);
 
