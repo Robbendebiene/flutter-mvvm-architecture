@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart' hide Action;
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:get_it/get_it.dart';
 import 'package:mobx/mobx.dart';
 
-import 'view_model.dart';
+import 'service.dart';
+
+part 'view_model.dart';
+
 
 /// ATTENTION: It is important that you explicitly specify the view model type in the class definition like in the example below.
 /// ```
@@ -48,6 +52,7 @@ class ViewElement<T extends ViewModel> extends ComponentElement {
   ViewElement(View<T> widget) :
     _viewModel = widget.create(),
     super(widget) {
+      _viewModel._element = this;
       _reactionDisposers = widget.hookReactions(this, _viewModel).toList(growable: false);
     }
 
@@ -64,10 +69,29 @@ class ViewElement<T extends ViewModel> extends ComponentElement {
   }
 
   @override
+  void mount(Element? parent, Object? newSlot) {
+    super.mount(parent, newSlot);
+    _viewModel.init();
+  }
+
+  @override
   void update(View<T> newWidget) {
     super.update(newWidget);
     assert(widget == newWidget);
     rebuild(force: true);
+  }
+
+  @override
+  void activate() {
+    super.activate();
+    _viewModel.activate();
+    markNeedsBuild();
+  }
+
+  @override
+  void deactivate() {
+    _viewModel.deactivate();
+    super.deactivate();
   }
 
   @override

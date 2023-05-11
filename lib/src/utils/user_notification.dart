@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:mobx/mobx.dart';
 
 import '/src/base/view.dart';
-import '/src/base/view_model.dart';
 
 typedef SnackbarCloseCallback = void Function(SnackBarClosedReason);
 
