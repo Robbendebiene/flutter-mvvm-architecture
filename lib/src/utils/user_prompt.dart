@@ -7,6 +7,7 @@ import '/src/base/view.dart';
 
 
 class Prompt<R> {
+  final String? title;
   final String message;
   final bool isDismissible;
   final Map<String, R> choices;
@@ -14,6 +15,7 @@ class Prompt<R> {
   Prompt({
     required this.message,
     required this.choices,
+    this.title,
     this.isDismissible = false,
   });
 
@@ -63,8 +65,9 @@ mixin PromptMediator on ViewModel {
 
   /// Requests input from the view
 
-  Future<R?> promptUserInput<R>({required String message, required Map<String, R> choices, bool isDismissible = false}) {
+  Future<R?> promptUserInput<R>({required String message, required Map<String, R> choices, String? title, bool isDismissible = false}) {
     final request = Prompt(
+      title: title,
       message: message,
       choices: choices,
       isDismissible: isDismissible,
@@ -105,6 +108,7 @@ mixin PromptHandler<T extends PromptMediator> on View<T> {
 
   Widget promptBuilder(BuildContext context, Prompt request) {
     return AlertDialog(
+      title: request.title != null ? Text(request.title!) : null,
       content: Text(request.message),
       actions: request.choices.entries.map(
         (entry) => TextButton(
