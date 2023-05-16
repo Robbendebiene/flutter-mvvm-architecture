@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide View;
 import 'package:mobx/mobx.dart';
 
 import '/src/base/view.dart';
