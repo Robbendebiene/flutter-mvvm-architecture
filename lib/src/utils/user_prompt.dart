@@ -123,7 +123,7 @@ mixin PromptHandler<T extends PromptMediator> on View<T> {
   Iterable<ReactionDisposer> hookReactions(BuildContext context, T vm) sync* {
     yield* super.hookReactions(context, vm);
 
-    yield reaction((_) => vm._promptRequests.value, (result) async {
+    yield reaction((_) => vm._promptRequests.value, (Prompt? result) async {
       if (result != null) {
         final response = await showDialog(
           context: context,

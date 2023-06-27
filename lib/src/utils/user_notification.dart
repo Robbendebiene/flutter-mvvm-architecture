@@ -114,7 +114,7 @@ mixin NotificationHandler<T extends NotificationMediator> on View<T> {
   Iterable<ReactionDisposer> hookReactions(BuildContext context, T vm) sync* {
     yield* super.hookReactions(context, vm);
 
-    yield reaction((_) => vm._notificationRequests.value, (result) {
+    yield reaction((_) => vm._notificationRequests.value, (Notification? result) {
       if (result != null) {
         final messenger = ScaffoldMessenger.of(context);
         final controller = messenger.showSnackBar(
@@ -176,7 +176,7 @@ class NotificationBuilderState<T extends NotificationMediator> extends State<Not
   }
 
   ReactionDisposer _reactionBuilder(T viewModel) {
-    return reaction((_) => viewModel._notificationRequests.value, (result) {
+    return reaction((_) => viewModel._notificationRequests.value, (Notification? result) {
       if (result != null) {
         final messenger = ScaffoldMessenger.of(context);
         final controller = messenger.showSnackBar(
