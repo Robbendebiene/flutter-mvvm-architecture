@@ -1,11 +1,27 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart' hide View;
+import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:mobx/mobx.dart';
 
 import '/src/base/view.dart';
 
 typedef SnackbarCloseCallback = void Function(SnackBarClosedReason);
+
+/// Base model used by the `NotificationMediator` and `NotificationHandler` to exchange data.
+///
+/// You max extend the class and later access it in the `notificationBuilder` like so:
+///
+/// ```dart
+/// Widget notificationBuilder(BuildContext context, Notification request) {
+///   if (request is CustomNotificationClass1) {
+///     ...
+///   }
+///   else if (request is CustomNotificationClass2) {
+///     ...
+///   }
+/// }
+/// ```
 
 class Notification {
   final String message;
@@ -14,20 +30,24 @@ class Notification {
   final VoidCallback? onVisible;
   final SnackbarCloseCallback? onClosed;
 
-  Notification({
-    required this.message,
+  Notification(this.message, {
     this.actionLabel = '',
     this.action,
     this.onVisible,
     this.onClosed,
-  });
+  }) :
+    assert(
+      (action == null && actionLabel.isEmpty) || (action != null && actionLabel.isNotEmpty),
+      action != null
+        ? 'An "action" is defined but no "actionLabel" was provided.'
+        : 'An "actionLabel" is defined but no "action" was provided.',
+    );
 }
 
 
 /// Mixin that allows the view model to show notifications to the user.
 ///
-/// It exposes a [notificationRequests] observable stream to the view.
-/// The view can react to them using the [NotificationHandler].
+/// The view can react to the notification requests by mixing in the [NotificationHandler].
 ///
 /// Example usage:
 /// ```dart
@@ -35,12 +55,13 @@ class Notification {
 ///   void myFunction() {
 ///     // do something ...
 ///
-///     notifyUser("ddd",
+///     notifyUser(Notification(
+///       "ddd",
 ///       actionLabel: "my action",
 ///       action: () => print("action"),
 ///       onVisible: () => print("visible"),
 ///       onClosed: (r) => print(r),
-///     );
+///     ));
 ///
 ///     // do something ...
 ///   }
@@ -53,23 +74,8 @@ mixin NotificationMediator on ViewModel {
 
   /// Requests the view to display a notification.
 
-  void notifyUser(String message, {String actionLabel = '', VoidCallback? action, VoidCallback? onVisible, SnackbarCloseCallback? onClosed}) {
-    assert(
-      (action == null && actionLabel.isEmpty) || (action != null && actionLabel.isNotEmpty),
-      action != null
-        ? 'An "action" is defined but no "actionLabel" was provided.'
-        : 'An "actionLabel" is defined but no "action" was provided.',
-    );
-
-    final request = Notification(
-      message: message,
-      actionLabel: actionLabel,
-      action: action,
-      onVisible: onVisible,
-      onClosed: onClosed,
-    );
-
-    _streamController.add(request);
+  void notifyUser(Notification notification) {
+    _streamController.add(notification);
   }
 
   @override
@@ -99,32 +105,33 @@ mixin NotificationMediator on ViewModel {
 ///   ...
 /// }
 /// ```
+///
+/// Override the `notificationBuilder` method in the `View` to customize the notification widget.
 
 mixin NotificationHandler<T extends NotificationMediator> on View<T> {
 
   /// Override this to build a custom notification snackbar.
-  ///
-  /// Otherwise this will use the [defaultNotificationBuilder].
 
   SnackBar notificationBuilder(BuildContext context, Notification request) {
-    return defaultNotificationBuilder(context, request);
+    return _defaultNotificationBuilder(context, request);
   }
 
   @override
-  Iterable<ReactionDisposer> hookReactions(BuildContext context, T vm) sync* {
-    yield* super.hookReactions(context, vm);
-
-    yield reaction((_) => vm._notificationRequests.value, (Notification? result) {
-      if (result != null) {
-        final messenger = ScaffoldMessenger.of(context);
-        final controller = messenger.showSnackBar(
-          notificationBuilder(context, result),
-        );
-        if (result.onClosed != null) {
-          controller.closed.then(result.onClosed!);
+  void hookReactions(BuildContext context, T vm, disposeWithWidget) {
+    super.hookReactions(context, vm, disposeWithWidget);
+    disposeWithWidget(
+      reaction((_) => vm._notificationRequests.value, (Notification? result) {
+        if (result != null) {
+          final messenger = ScaffoldMessenger.of(context);
+          final controller = messenger.showSnackBar(
+            notificationBuilder(context, result),
+          );
+          if (result.onClosed != null) {
+            controller.closed.then(result.onClosed!);
+          }
         }
-      }
-    });
+      }),
+    );
   }
 }
 
@@ -143,7 +150,7 @@ class NotificationBuilder<T extends NotificationMediator> extends StatefulWidget
 
   const NotificationBuilder({
     required this.child,
-    this.builder = defaultNotificationBuilder,
+    this.builder = _defaultNotificationBuilder,
     super.key,
   });
 
@@ -193,7 +200,7 @@ class NotificationBuilderState<T extends NotificationMediator> extends State<Not
 
 /// The default builder for notifications dispatched by the [NotificationMediator].
 
-SnackBar defaultNotificationBuilder(BuildContext context, Notification request) {
+SnackBar _defaultNotificationBuilder(BuildContext context, Notification request) {
   return SnackBar(
     content: Text(request.message),
     onVisible: request.onVisible,

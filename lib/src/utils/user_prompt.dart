@@ -5,6 +5,20 @@ import 'package:mobx/mobx.dart';
 
 import '/src/base/view.dart';
 
+/// Base model used by the `PromptMediator` and `PromptHandler` to exchange data.
+///
+/// You max extend the class and later access it in the `promptBuilder` like so:
+///
+/// ```dart
+/// Widget promptBuilder(BuildContext context, Prompt request) {
+///   if (request is CustomPromptClass1) {
+///     ...
+///   }
+///   else if (request is CustomPromptClass2) {
+///     ...
+///   }
+/// }
+/// ```
 
 class Prompt<R> {
   final String? title;
@@ -29,25 +43,24 @@ class Prompt<R> {
 }
 
 
-/// Mixin that allows the view model to prompt for user inputs.
+/// Mixin that allows the view model to prompt for user inputs via `promptUserInput()`.
 ///
-/// It exposes a [promptRequests] observable stream to the view.
-/// The view can react to them using the [PromptHandler].
+/// The view can react to the prompt requests by mixing in the [PromptHandler].
 ///
 /// Example usage:
 /// ```dart
 /// class MyViewModel extends ViewModel with PromptMediator {
-///   void myHeavyFunction() async {
+///   void myFunction() async {
 ///     // do something ...
 ///
-///     final userInput = await promptUserInput(
+///     final userInput = await promptUserInput(Prompt(
 ///       message: "Do you want..",
 ///       choices: {
 ///         "Yes": true,
 ///         "No": false,
 ///         "Cancel": null,
 ///       },
-///     );
+///     ));
 ///
 ///     if (userInput == true) {
 ///       // do something ...
@@ -63,18 +76,12 @@ mixin PromptMediator on ViewModel {
   final _streamController = StreamController<Prompt>();
   late final _promptRequests = ObservableStream(_streamController.stream);
 
-  /// Requests input from the view
+  /// Requests input from the view.
+  ///
+  /// Returns the result value. This is the same as `Prompt().response` property.
 
-  Future<R?> promptUserInput<R>({required String message, required Map<String, R> choices, String? title, bool isDismissible = false}) {
-    final request = Prompt(
-      title: title,
-      message: message,
-      choices: choices,
-      isDismissible: isDismissible,
-    );
-
+  Future<R?> promptUserInput<R>(Prompt<R> request) {
     _streamController.add(request);
-
     return request.response;
   }
 
@@ -101,6 +108,8 @@ mixin PromptMediator on ViewModel {
 ///   ...
 /// }
 /// ```
+///
+/// Override the `promptBuilder` method in the `View` to customize the prompt widget.
 
 mixin PromptHandler<T extends PromptMediator> on View<T> {
 
@@ -120,18 +129,19 @@ mixin PromptHandler<T extends PromptMediator> on View<T> {
   }
 
   @override
-  Iterable<ReactionDisposer> hookReactions(BuildContext context, T vm) sync* {
-    yield* super.hookReactions(context, vm);
-
-    yield reaction((_) => vm._promptRequests.value, (Prompt? result) async {
-      if (result != null) {
-        final response = await showDialog(
-          context: context,
-          builder: (context) => promptBuilder(context, result),
-          barrierDismissible: result.isDismissible,
-        );
-        result.respond(response);
-      }
-    });
+  void hookReactions(BuildContext context, T vm, disposeWithWidget) {
+    super.hookReactions(context, vm, disposeWithWidget);
+    disposeWithWidget(
+      reaction((_) => vm._promptRequests.value, (Prompt? result) async {
+        if (result != null) {
+          final response = await showDialog(
+            context: context,
+            builder: (context) => promptBuilder(context, result),
+            barrierDismissible: result.isDismissible,
+          );
+          result.respond(response);
+        }
+      }),
+    );
   }
 }

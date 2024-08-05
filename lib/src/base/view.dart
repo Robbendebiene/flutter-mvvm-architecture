@@ -7,6 +7,8 @@ import 'service.dart';
 
 part 'view_model.dart';
 
+/// Callback used to register a reaction disposer for disposal.
+typedef RegisterDispose = void Function(ReactionDisposer disposer);
 
 /// ATTENTION: It is important that you explicitly specify the view model type in the class definition like in the example below.
 /// ```
@@ -33,12 +35,10 @@ abstract class View<T extends ViewModel> extends Widget {
   ///
   /// This will be called once by the widget on `initState`.
   ///
-  /// For every created reaction a respective [ReactionDisposer] must be `yield` so it can be disposed correctly.
-  ///
-  /// **Note:** You must `yield*` the `super` call, otherwise other mixed in reactions will be lost.
+  /// The [ReactionDisposer] of any created reaction can be auto disposed by passing it to `disposeWithWidget`.
 
   @mustCallSuper
-  Iterable<ReactionDisposer> hookReactions(BuildContext context, T vm) sync* {}
+  void hookReactions(BuildContext context, T vm, RegisterDispose disposeWithWidget) {}
 
   @override
   Element createElement() => ViewElement(this);
@@ -47,13 +47,13 @@ abstract class View<T extends ViewModel> extends Widget {
 class ViewElement<T extends ViewModel> extends ComponentElement {
   final T _viewModel;
 
-  late final List<ReactionDisposer> _reactionDisposers;
+  final List<ReactionDisposer> _reactionDisposers = [];
 
   ViewElement(View<T> widget) :
     _viewModel = widget.create(),
     super(widget) {
       _viewModel._element = this;
-      _reactionDisposers = widget.hookReactions(this, _viewModel).toList(growable: false);
+      widget.hookReactions(this, _viewModel, _reactionDisposers.add);
     }
 
   @override
