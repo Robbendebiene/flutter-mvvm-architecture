@@ -1,28 +1,60 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide Action, View;
+import 'package:flutter/rendering.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:get_it/get_it.dart';
+import 'package:flutter_mvvm_architecture/base.dart';
 import 'package:mobx/mobx.dart';
 
-import 'service.dart';
+import 'shared_model.dart';
 
 part 'view_model.dart';
+part 'view_fragment.dart';
+part 'request.dart';
 
-/// Callback used to register a reaction disposer for disposal.
-typedef RegisterDispose = void Function(ReactionDisposer disposer);
+/// Callback used to register a disposer for disposal.
+typedef RegisterDispose = void Function(VoidCallback disposer);
 
 /// ATTENTION: It is important that you explicitly specify the view model type in the class definition like in the example below.
-/// ```
-/// class ExampleView extends View<ExampleViewModel> {
-///   const ExampleView({
+/// ```dart
+/// class SecondView extends View<SecondViewModel> {
+///   SecondView({
 ///     super.key
-///   }) : super(create: ExampleViewModel.new);
-///   ...
+///   }) : super(create: (_) => SecondViewModel());
+///
+///   @override
+///   Widget build(context, viewModel) {}
 /// }
 /// ```
-/// Otherwise the view model cannot be found by any [ViewFragment]s.
-
+/// If the ViewModel depends on `SharedModel`s then get them in the View's `create` method and pass them via constructor.
+/// ```dart
+/// class FirstView extends View<FirstViewModel> {
+///   FirstView({
+///     super.key
+///   }) : super(create: (require) => FirstViewModel(
+///       require<AModel>(),
+///       require<BModel>(),
+///   ));
+///
+///   @override
+///   Widget build(context, viewModel) {}
+/// }
+/// ```
 abstract class View<T extends ViewModel> extends Widget {
-  final T Function() create;
+  /// Callback used to create and bind the view model for this view.
+  ///
+  /// Use the `Require` callback to retrieve any `SharedModel`s.
+  /// ```dart
+  /// final myModel = require<SharedModelType>();
+  /// ```
+
+  // This could have been a class function that must be implemented by the users
+  // like: T create(RequireCallback require);
+  // Having this in the constructor is only beneficial when parameters are passed to the view models construction.
+  // Having it in the constructor allows to directly pass them to the view model without first exposing them as a final variable on the view.
+  // Having model variables on the view is discouraged and users could be tempted to use them instead of the view model.
+  final T Function(Require require) create;
 
   const View({
     required this.create,
@@ -33,45 +65,84 @@ abstract class View<T extends ViewModel> extends Widget {
 
   /// Override this to add any sort of reactions based on the current view model.
   ///
-  /// This will be called once by the widget on `initState`.
+  /// This function will be called once when the widget is mounted.
+  /// It is called after the view model's creation and before the first build.
   ///
-  /// The [ReactionDisposer] of any created reaction can be auto disposed by passing it to `disposeWithWidget`.
+  /// Any sort of dispose functions like [ReactionDisposer] can be auto disposed by passing it to `disposeWithWidget`.
+  ///
+  /// Implementers of this function must call super at the beginning passing the original parameters.
+  ///
+  /// Example:
+  /// ```dart
+  /// @override
+  /// void react(context, vm, disposeWithWidget) {
+  ///   super.react(context, vm, disposeWithWidget);
+  ///   disposeWithWidget(reaction(
+  ///     (_) => vm.myProperty,
+  ///     (v) => print('Do something with $v'),
+  ///   ));
+  /// }
+  /// ```
 
   @mustCallSuper
-  void hookReactions(BuildContext context, T vm, RegisterDispose disposeWithWidget) {}
+  void react(BuildContext context, T vm, RegisterDispose disposeWithWidget) {
+    final sub = vm._requests.stream.listen((request) {
+      if (context.mounted) requestHandler(context, vm, request);
+    });
+    disposeWithWidget(sub.cancel);
+  }
+
+  /// Override this to handle custom `request(MyCustomRequest)` calls from the View Model.
+  ///
+  /// This is typically implemented in a separate Mixin that can be mixed in the View.
+  ///
+  /// Example override:
+  /// ```dart
+  /// void requestHandler(BuildContext context, T vm, Request request) {
+  ///   super.requestHandler(context, vm, request);
+  ///   if (request is MyCustomRequest) {
+  ///     /* do something */
+  ///     request.respond(/* custom response */);
+  ///   }
+  /// }
+  /// ```
+  /// Implementers of this function must call super at the beginning passing the original parameters.
+
+  @mustCallSuper
+  void requestHandler(BuildContext context, T vm, Request request) {}
 
   @override
+  @protected
   Element createElement() => ViewElement(this);
 }
 
-class ViewElement<T extends ViewModel> extends ComponentElement {
-  final T _viewModel;
 
-  final List<ReactionDisposer> _reactionDisposers = [];
+class ViewElement<T extends ViewModel> extends Element {
+  late final T _viewModel;
 
-  ViewElement(View<T> widget) :
-    _viewModel = widget.create(),
-    super(widget) {
-      _viewModel._element = this;
-      widget.hookReactions(this, _viewModel, _reactionDisposers.add);
-    }
+  final List<VoidCallback> _disposers = [];
 
-  @override
+  ViewElement(super.widget);
+
   Widget build() {
-    return ViewModelProvider<T>(
-      viewModel: _viewModel,
-      child: Observer(
-        builder: (context) => (widget as View<T>).build(context, _viewModel),
-        name: '$widget',
-        warnWhenNoObservables: false,
-      ),
+    return Observer(
+      builder: (context) => (widget as View<T>).build(context, _viewModel),
+      name: '$widget',
+      warnWhenNoObservables: false,
     );
   }
 
   @override
   void mount(Element? parent, Object? newSlot) {
     super.mount(parent, newSlot);
-    _viewModel.init();
+    assert(_child == null);
+    // create view model and setup reactions
+    final view = widget as View<T>;
+    _viewModel = view.create(Require(this));
+    view.react(this, _viewModel, _disposers.add);
+    // trigger first build
+    rebuild();
+    assert(_child != null);
   }
 
   @override
@@ -83,6 +154,11 @@ class ViewElement<T extends ViewModel> extends ComponentElement {
 
   @override
   void activate() {
+    // How to handle when views/view models is moved in the tree?
+    // We could pass the require method again to give view models a chance to
+    // revaluate their dependencies.
+    // It was decided against doing so as a view model should be pure, meaning
+    // it does not care about its context or place in the tree
     super.activate();
     _viewModel.activate();
     markNeedsBuild();
@@ -97,75 +173,102 @@ class ViewElement<T extends ViewModel> extends ComponentElement {
   @override
   void unmount() {
     super.unmount();
-    for (var disposer in _reactionDisposers) {
+    for (var disposer in _disposers) {
       disposer();
     }
     _viewModel.dispose();
   }
-}
 
 
-/// A widget that depends on a view model but doesn't provide one.
-///
-/// Make sure that the [ViewFragment] is below the [View] with the dependent [ViewModel] in the tree.
-///
-/// Specify the dependant view model like this:
-/// ```
-/// class ExampleViewFragment extends ViewFragment<ExampleViewModel> {
-///   ...
-/// }
-/// ```
+  // Code copied from ComponentElement \\
 
-abstract class ViewFragment<T extends ViewModel> extends Widget {
-  const ViewFragment({super.key});
+  Element? _child;
 
-  Widget build(BuildContext context, T viewModel);
+  bool _debugDoingBuild = false;
+  @override
+  bool get debugDoingBuild => _debugDoingBuild;
 
   @override
-  Element createElement() => ViewFragmentElement(this);
-}
-
-class ViewFragmentElement<T extends ViewModel> extends ComponentElement {
-  ViewFragmentElement(ViewFragment<T> widget) : super(widget);
+  Element? get renderObjectAttachingChild => _child;
 
   @override
-  Widget build() {
-    return Observer(
-      builder: (context) => (widget as ViewFragment<T>).build(context, _viewModel),
-      name: '$widget',
+  @pragma('vm:notify-debugger-on-exception')
+  void performRebuild() {
+    Widget? built;
+    try {
+      assert(() {
+        _debugDoingBuild = true;
+        return true;
+      }());
+      built = build();
+      assert(() {
+        _debugDoingBuild = false;
+        return true;
+      }());
+      debugWidgetBuilderValue(widget, built);
+    } catch (e, stack) {
+      _debugDoingBuild = false;
+      built = ErrorWidget.builder(
+        _reportException(
+          ErrorDescription('building $this'),
+          e,
+          stack,
+          informationCollector: () => <DiagnosticsNode>[
+            if (kDebugMode)
+              DiagnosticsDebugCreator(DebugCreator(this)),
+          ],
+        ),
+      );
+    } finally {
+      super.performRebuild();
+    }
+    try {
+      _child = updateChild(_child, built, slot);
+      assert(_child != null);
+    } catch (e, stack) {
+      built = ErrorWidget.builder(
+        _reportException(
+          ErrorDescription('building $this'),
+          e,
+          stack,
+          informationCollector: () => <DiagnosticsNode>[
+            if (kDebugMode)
+              DiagnosticsDebugCreator(DebugCreator(this)),
+          ],
+        ),
+      );
+      _child = updateChild(null, built, slot);
+    }
+  }
+
+  FlutterErrorDetails _reportException(
+    DiagnosticsNode context,
+    Object exception,
+    StackTrace? stack, {
+    InformationCollector? informationCollector,
+  }) {
+    final FlutterErrorDetails details = FlutterErrorDetails(
+      exception: exception,
+      stack: stack,
+      library: 'widgets library',
+      context: context,
+      informationCollector: informationCollector,
     );
+    FlutterError.reportError(details);
+    return details;
   }
 
   @override
-  void update(ViewFragment<T> newWidget) {
-    super.update(newWidget);
-    assert(widget == newWidget);
-    rebuild(force: true);
+  void visitChildren(ElementVisitor visitor) {
+    if (_child != null) {
+      visitor(_child!);
+    }
   }
-
-  /// Get a view model of the given type that was declared above in the tree.
-
-  T get _viewModel {
-    final result = dependOnInheritedWidgetOfExactType<ViewModelProvider<T>>();
-    assert(result != null, 'The ViewFragment "$widget" cannot find "$T" in the current context.');
-    return result!.viewModel;
-  }
-}
-
-
-/// Inherited widget to provide the view model to descendent widgets.
-
-class ViewModelProvider<VM extends ViewModel> extends InheritedWidget {
-  final VM viewModel;
-
-  const ViewModelProvider({
-    required this.viewModel,
-    required super.child,
-    super.key,
-  });
 
   @override
-  bool updateShouldNotify(ViewModelProvider oldWidget) {
-    return viewModel != oldWidget.viewModel;
+  void forgetChild(Element child) {
+    assert(child == _child);
+    _child = null;
+    super.forgetChild(child);
   }
 }

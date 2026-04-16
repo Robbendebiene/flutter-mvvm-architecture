@@ -1,19 +1,18 @@
 name: flutter_mvvm_architecture
 description: An opinionated MVVM architecture for Flutter.
-version: 0.0.2
+version: 1.0.0
 homepage:
 
 environment:
-  sdk: '>=2.17.0 <4.0.0'
+  sdk: '>=3.6.0 <4.0.0'
   flutter: ">=1.17.0"
 
 dependencies:
   flutter:
     sdk: flutter
 
-  mobx: ^2.2.0
-  flutter_mobx: ^2.0.6+5
-  get_it: ^7.6.4
+  mobx: ^2.4.0
+  flutter_mobx: ^2.2.1+1
 
 dev_dependencies:
   flutter_test:

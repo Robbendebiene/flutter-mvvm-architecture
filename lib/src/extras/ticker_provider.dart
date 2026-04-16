@@ -5,13 +5,26 @@ import 'package:flutter/scheduler.dart';
 import '/src/base/view.dart';
 
 
+class _TickerNotifierRequest extends SyncRequest<ValueListenable<TickerModeData>> {}
+
+mixin TickerProviderHandler<T extends MakeTickerProvider> on View<T> {
+
+  @override
+  void requestHandler(BuildContext context, T vm, Request request) {
+    super.requestHandler(context, vm, request);
+    if (request is _TickerNotifierRequest) {
+      request.respond(TickerMode.getValuesNotifier(context));
+    }
+  }
+}
+
 /// Mixin that allows the view model to act as a [TickerProvider].
 ///
 /// This is basically a copy of [TickerProviderStateMixin] hence it is used in the same way.
 ///
 /// Example usage:
 /// ```dart
-/// class MyViewModel extends ViewModel with TickerProvider {
+/// class MyViewModel extends ViewModel with MakeTickerProvider {
 ///   late final AnimationController _myAnimationController;
 ///
 ///   void init() async {
@@ -39,7 +52,7 @@ mixin MakeTickerProvider on ViewModel implements TickerProvider {
     assert(_tickerModeNotifier != null);
     _tickers ??= <_DisposingTicker>{};
     final _DisposingTicker result = _DisposingTicker(onTick, this, debugLabel: kDebugMode ? 'created by ${describeIdentity(this)}' : null)
-      ..muted = !_tickerModeNotifier!.value;
+      ..muted = !_tickerModeNotifier!.value.enabled;
     _tickers!.add(result);
     return result;
   }
@@ -50,7 +63,7 @@ mixin MakeTickerProvider on ViewModel implements TickerProvider {
     _tickers!.remove(ticker);
   }
 
-  ValueListenable<bool>? _tickerModeNotifier;
+  ValueListenable<TickerModeData>? _tickerModeNotifier;
 
   @override
   void activate() {
@@ -62,7 +75,7 @@ mixin MakeTickerProvider on ViewModel implements TickerProvider {
 
   void _updateTickers() {
     if (_tickers != null) {
-      final bool muted = !_tickerModeNotifier!.value;
+      final bool muted = !_tickerModeNotifier!.value.enabled;
       for (final Ticker ticker in _tickers!) {
         ticker.muted = muted;
       }
@@ -70,7 +83,7 @@ mixin MakeTickerProvider on ViewModel implements TickerProvider {
   }
 
   void _updateTickerModeNotifier() {
-    final newNotifier = TickerMode.getNotifier(context);
+    final newNotifier = request(_TickerNotifierRequest());
     if (newNotifier == _tickerModeNotifier) {
       return;
     }

@@ -1,6 +1,6 @@
 # Models
 
-In the broad sense a Model is a class that most of the time describes some real word object or concept. Models can be distiguished in a lot of different types like domain objects, value objects etc. but for simplicity this architecture ignores this.
+In the broad sense a Model is a class that most of the time describes some real word object or concept. Models can be distinguished in a lot of different types like domain objects, value objects etc. but for simplicity this architecture ignores this.
 
 The architecture heavily depends on the principle that any changes get propagated automatically to any dependents. Therefore a model has to be either immutable or entirely composed of *Observables* from the **mobx** package.
 

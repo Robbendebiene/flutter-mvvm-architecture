@@ -9,36 +9,40 @@ GestureDetector(
 ```
 
 For this architecture it is required that any exposed/provided properties by the View Model are directly read/derived from **Observables**. The View and ViewFragments will then automatically bind to the Observables in order to get notified on any changes and rebuild accordingly.
-Any ephemeral states can be stored in the View Model. Shared or persistent states must be managed by a Service.
+Any ephemeral states can be stored in the View Model. Shared or persistent states must be managed by a SharedModel.
 
 
 **Example:**
 ```dart
 
-class MyUserService extends Service {
+class MyUserService {
   final _user = Observable<User?>();
 
-  late final login = Action((String name, String password) async {
+  void login(String name, String password) async {
     ...
 
-    _user.value = User();
-  });
+    runInAction(() => _user.value = User());
+  }
 
-  late final logout = Action(() async {
+  void logout() async {
     ...
 
-    _user.value = null;
-  });
+    runInAction(() => _user.value = null);
+  }
 
   bool get isLoggedIn => _user.value != null;
 
-  User get getCurrentUser => _user.value!;
+  User get currentUser => _user.value!;
 }
 
 
 class MyViewModel extends ViewModel {
 
-  User get _user => getService<MyUserService>().getCurrentUser();
+  final MyUserService _userService;
+
+  ViewModel(this._userService);
+
+  User get _user => _userService.currentUser;
 
   String get name => _user.name;
 
@@ -48,9 +52,26 @@ class MyViewModel extends ViewModel {
     return '${_user.name} ${_user.surname}';
   });
 
-  late final updateUserName = Action((String name) {
-    _user.name = name;
-  });
+  void updateUserName(String name) {
+    runInAction(() => _user.name = name);
+  }
+}
+```
+
+### Dependency Injection
+Sometimes View Models require a shared app state. The shared state can be provided via a `SharedModel` and retrieved inside the `create` callback via the `require` function.
+
+**Example:**
+
+```dart
+class MainView extends View<MainViewModel> {
+  const MainView({
+    super.key
+  }) : super(create: (require) => MainViewModel(
+    myDependency: require<SharedDependency>(),
+  ));
+
+  ...
 }
 ```
 

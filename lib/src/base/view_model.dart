@@ -1,41 +1,50 @@
 part of 'view.dart';
 
+/// The ViewModel is constructed when the View is mounted to the tree and owned by the View.
+///
+/// By design it does not get the `BuildContext` of the view to decouple it as much as possible.
+/// If you require context e.g. to show a dialog or notifications use the `request()` method.
+///
+/// If you require context due to other reasons (e.g. Localizations or MediaQuery) try:
+/// - moving the context access to the View and if necessary pass the result to the View Model
+/// - implementing a custom `Request` with a respective handler in the View
+///
+/// If the ViewModel depends on `SharedModel`s then get them in the View's `create` method and pass them via constructor.
+///
+/// Example:
+/// ```dart
+/// class MyViewModel extends ViewModel {
+///   final SharedModelA a;
+///   final SharedModelB b;
+///
+///   MyViewModel(this.a, this.b);
+/// }
+/// ```
+/// For async operations consider checking whether the `isDisposed` property is still `false` to exit any routine when the View is unmounted/disposed.
 
 abstract class ViewModel {
-  T getService<T extends Service>() => GetIt.I<T>();
-
-  /// The location in the tree of the corresponding widget.
-  ///
-  /// The [ViewModel] receives its [BuildContext] after creating them with
-  /// [View.create] and before calling [init]. The association is permanent:
-  /// the [State] object will never change its [BuildContext]. However,
-  /// the [BuildContext] itself can be moved around the tree.
-
-  BuildContext get context {
-    assert(() {
-      if (_element == null) {
-        throw FlutterError(
-          'This widget has been unmounted, so the State no longer has a context (and should be considered defunct). \n'
-          'Consider canceling any active work during "dispose" or using the "mounted" getter to determine if the State is still active.',
-        );
-      }
-      return true;
-    }());
-    return _element!;
-  }
-  ViewElement? _element;
-
-  /// Whether the corresponding widget is currently in a tree.
-
-  bool get mounted => _element != null;
 
   /// Called when this object is inserted into the tree.
-  ///
-  /// This is the first time the [BuildContext] is available.
 
-  @protected
-  @mustCallSuper
-  void init() {}
+  ViewModel();
+
+  // use sync true to allow synchronous responses
+  final _requests = StreamController<Request>(sync: true);
+
+  /// Dispatch requests to the subscribed view.
+  ///
+  /// This is a helper function to easily implement things like showing dialogs or notifications.
+  ///
+  /// The View may react to the requests and even respond.
+
+  O request<R, O>(Request<R, O> request) {
+    _requests.add(request);
+    return request._response;
+  }
+
+  /// Check whether the widget this view model belongs to is unmounted/disposed.
+
+  bool get isDisposed => _requests.isClosed;
 
   @protected
   @mustCallSuper
@@ -48,6 +57,6 @@ abstract class ViewModel {
   @protected
   @mustCallSuper
   void dispose() {
-    _element = null;
+    _requests.close();
   }
 }

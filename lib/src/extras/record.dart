@@ -1,4 +1,3 @@
-
 import 'package:mobx/mobx.dart';
 
 /// A mixin for models that want to store their values. When storing as JSON `T` usually will be of type `Map<String, dynamic>`.

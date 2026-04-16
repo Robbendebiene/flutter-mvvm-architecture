@@ -1,6 +1,9 @@
 library flutter_mvvm_architecture;
 
-export 'src/base/repository.dart';
-export 'src/base/service.dart';
-export 'src/base/view.dart' show View, ViewFragment, ViewModel;
-export 'src/base/record.dart';
+export 'package:mobx/mobx.dart';
+export 'src/base/view.dart' show
+  View, ViewFragment,
+  ViewModel,
+  Request, SyncRequest, AsyncRequest;
+export 'src/base/shared_model.dart' show SharedModel;
+
