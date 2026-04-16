@@ -15,7 +15,7 @@ class MainWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Create an provide ShoppingCart model to View "require" functions
+    // Create an provide ShoppingCart model to View "locate" functions
     // Usually you would have a class like "GlobalStore" that contains/instantiates all your globally shared models.
     return SharedModel(
       create: ShoppingCart.new,
@@ -69,8 +69,8 @@ class ProductsViewModel extends ViewModel {
 
 class ProductsView extends View<ProductsViewModel> with GlobalNotificationHandler {
   ProductsView({super.key}) : super(
-    create: (require) => ProductsViewModel(
-      require<ShoppingCart>(),
+    create: (locate) => ProductsViewModel(
+      locate<ShoppingCart>(),
     ),
   );
 
@@ -182,8 +182,8 @@ class ShoppingCartViewModel extends ViewModel {
 
 class ShoppingCartView extends View<ShoppingCartViewModel> with ChoiceHandler {
   ShoppingCartView({super.key}) : super(
-    create: (require) => ShoppingCartViewModel(
-      require<ShoppingCart>(),
+    create: (locate) => ShoppingCartViewModel(
+      locate<ShoppingCart>(),
     ),
   );
 

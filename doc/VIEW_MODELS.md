@@ -59,7 +59,7 @@ class MyViewModel extends ViewModel {
 ```
 
 ### Dependency Injection
-Sometimes View Models require a shared app state. The shared state can be provided via a `SharedModel` and retrieved inside the `create` callback via the `require` function.
+Sometimes View Models require a shared app state. The shared state can be provided via a `SharedModel` and retrieved inside the `create` callback via the `locate` function.
 
 **Example:**
 
@@ -67,8 +67,8 @@ Sometimes View Models require a shared app state. The shared state can be provid
 class MainView extends View<MainViewModel> {
   const MainView({
     super.key
-  }) : super(create: (require) => MainViewModel(
-    myDependency: require<SharedDependency>(),
+  }) : super(create: (locate) => MainViewModel(
+    myDependency: locate<SharedDependency>(),
   ));
 
   ...

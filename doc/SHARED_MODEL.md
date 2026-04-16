@@ -16,7 +16,7 @@ SharedModel(
 )
 ```
 
-The `SharedModel` can **only** be retrieved in the `create` function of the View using the `require` callback. This ensures consistency and forces the View Models to stay pure and only receive their dependencies via the constructor.
+The `SharedModel` can **only** be retrieved in the `create` function of the View using the `locate` callback. This ensures consistency and forces the View Models to stay pure and only receive their dependencies via the constructor.
 
 **Example:**
 
@@ -24,8 +24,8 @@ The `SharedModel` can **only** be retrieved in the `create` function of the View
 class MainView extends View<MainViewModel> {
   const MainView({
     super.key
-  }) : super(create: (require) => MainViewModel(
-    myDependency: require<SharedDependency>(),
+  }) : super(create: (locate) => MainViewModel(
+    myDependency: locate<SharedDependency>(),
   ));
 
   ...

@@ -14,7 +14,7 @@ Any Observables (typically provided by a View Model) used inside the build metho
 class MainView extends View<MainViewModel> {
   const MainView({
     super.key
-  }) : super(create: (require) => MainViewModel());
+  }) : super(create: (locate) => MainViewModel());
 
   @override
   Widget build(BuildContext context, MainViewModel viewModel) {

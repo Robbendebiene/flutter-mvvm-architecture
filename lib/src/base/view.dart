@@ -32,9 +32,9 @@ typedef RegisterDispose = void Function(VoidCallback disposer);
 /// class FirstView extends View<FirstViewModel> {
 ///   FirstView({
 ///     super.key
-///   }) : super(create: (require) => FirstViewModel(
-///       require<AModel>(),
-///       require<BModel>(),
+///   }) : super(create: (locate) => FirstViewModel(
+///       locate<AModel>(),
+///       locate<BModel>(),
 ///   ));
 ///
 ///   @override
@@ -44,17 +44,17 @@ typedef RegisterDispose = void Function(VoidCallback disposer);
 abstract class View<T extends ViewModel> extends Widget {
   /// Callback used to create and bind the view model for this view.
   ///
-  /// Use the `Require` callback to retrieve any `SharedModel`s.
+  /// Use the `locate` callback to retrieve any `SharedModel`s.
   /// ```dart
-  /// final myModel = require<SharedModelType>();
+  /// final myModel = locate<SharedModelType>();
   /// ```
 
   // This could have been a class function that must be implemented by the users
-  // like: T create(RequireCallback require);
+  // like: T create(LocateCallback locate);
   // Having this in the constructor is only beneficial when parameters are passed to the view models construction.
   // Having it in the constructor allows to directly pass them to the view model without first exposing them as a final variable on the view.
   // Having model variables on the view is discouraged and users could be tempted to use them instead of the view model.
-  final T Function(Require require) create;
+  final T Function(Locate locate) create;
 
   const View({
     required this.create,
@@ -138,7 +138,7 @@ class ViewElement<T extends ViewModel> extends Element {
     assert(_child == null);
     // create view model and setup reactions
     final view = widget as View<T>;
-    _viewModel = view.create(Require(this));
+    _viewModel = view.create(Locate(this));
     view.react(this, _viewModel, _disposers.add);
     // trigger first build
     rebuild();
@@ -155,7 +155,7 @@ class ViewElement<T extends ViewModel> extends Element {
   @override
   void activate() {
     // How to handle when views/view models is moved in the tree?
-    // We could pass the require method again to give view models a chance to
+    // We could pass the locate method again to give view models a chance to
     // revaluate their dependencies.
     // It was decided against doing so as a view model should be pure, meaning
     // it does not care about its context or place in the tree

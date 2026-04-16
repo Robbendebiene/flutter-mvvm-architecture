@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-/// SharedModel is used to provide data to a sub-tree. It can only be accessed by descendent Views in the `create((require) => ...)` callback using the `require` function.
+/// SharedModel is used to provide data to a sub-tree. It can only be accessed by descendent Views in the `create((locate) => ...)` callback using the `locate` function.
 ///
 /// Since it is part of the tree the data is automatically scoped.
 /// If you need to globally provide a model inject it at the root of your app's widget tree.
@@ -81,16 +81,16 @@ class _SharedModelProvider<T> extends InheritedWidget {
 
 /// Callback used to retrieve SharedModels.
 /// ```dart
-/// final myModel = require<SharedModelType>();
+/// final myModel = locate<SharedModelType>();
 /// ```
 
 // used to hide context from View Model
 // usually one would use dependOnInheritedWidgetOfExactType to rebuild this widget on dependency changes
 // also dependOnInheritedWidgetOfExactType should not be called on mount/initState because it will never be re-called
 // but since SharedModels never change this is a safe contract
-class Require {
+class Locate {
   final BuildContext _context;
-  Require(this._context);
+  Locate(this._context);
 
   X call<X extends Object>() {
     final result = _context.getInheritedWidgetOfExactType<_SharedModelProvider<X>>();
