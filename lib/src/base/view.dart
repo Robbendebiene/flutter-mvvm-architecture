@@ -113,7 +113,7 @@ abstract class View<T extends ViewModel> extends Widget {
 
   @override
   @protected
-  Element createElement() => ViewElement(this);
+  Element createElement() => ViewElement<T>(this);
 }
 
 
@@ -172,13 +172,12 @@ class ViewElement<T extends ViewModel> extends Element {
 
   @override
   void unmount() {
-    super.unmount();
     for (var disposer in _disposers) {
       disposer();
     }
     _viewModel.dispose();
+    super.unmount();
   }
-
 
   // Code copied from ComponentElement \\
 
@@ -194,7 +193,7 @@ class ViewElement<T extends ViewModel> extends Element {
   @override
   @pragma('vm:notify-debugger-on-exception')
   void performRebuild() {
-    Widget? built;
+    Widget built;
     try {
       assert(() {
         _debugDoingBuild = true;
@@ -214,8 +213,7 @@ class ViewElement<T extends ViewModel> extends Element {
           e,
           stack,
           informationCollector: () => <DiagnosticsNode>[
-            if (kDebugMode)
-              DiagnosticsDebugCreator(DebugCreator(this)),
+            if (kDebugMode) DiagnosticsDebugCreator(DebugCreator(this)),
           ],
         ),
       );
@@ -232,11 +230,14 @@ class ViewElement<T extends ViewModel> extends Element {
           e,
           stack,
           informationCollector: () => <DiagnosticsNode>[
-            if (kDebugMode)
-              DiagnosticsDebugCreator(DebugCreator(this)),
+            if (kDebugMode) DiagnosticsDebugCreator(DebugCreator(this)),
           ],
         ),
       );
+      try {
+        // ignore: invalid_use_of_visible_for_overriding_member
+        _child?.deactivate();
+      } catch (_) {}
       _child = updateChild(null, built, slot);
     }
   }
@@ -247,10 +248,10 @@ class ViewElement<T extends ViewModel> extends Element {
     StackTrace? stack, {
     InformationCollector? informationCollector,
   }) {
-    final FlutterErrorDetails details = FlutterErrorDetails(
+    final details = FlutterErrorDetails(
       exception: exception,
       stack: stack,
-      library: 'widgets library',
+      library: 'MVVM library',
       context: context,
       informationCollector: informationCollector,
     );

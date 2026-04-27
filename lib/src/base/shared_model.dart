@@ -26,7 +26,7 @@ import 'package:flutter/widgets.dart';
 /// ),
 /// ```
 
-class SharedModel<T> extends ProxyWidget {
+class SharedModel<T> extends InheritedWidget {
   final T Function() create;
   final void Function(T state)? dispose;
 
@@ -38,44 +38,30 @@ class SharedModel<T> extends ProxyWidget {
   });
 
   @override
-  SharedModelElement<T> createElement() => SharedModelElement<T>(this);
+  InheritedElement createElement() => _SharedModelElement<T>(this);
+
+  // this should always return false as the state object is never replaced
+  @override
+  bool updateShouldNotify(covariant SharedModel<T> oldWidget) => false;
 }
 
-class SharedModelElement<T> extends ComponentElement {
-  final T _state;
-  SharedModelElement(SharedModel<T> widget) :
-    _state = widget.create(),
-    super(widget);
+class _SharedModelElement<T> extends InheritedElement {
+  _SharedModelElement(SharedModel<T> widget) : super(widget);
+
+  late final T state;
 
   @override
-  Widget build() {
-    return _SharedModelProvider(
-      state: _state,
-      child: (widget as SharedModel<T>).child,
-    );
+  void mount(Element? parent, Object? newSlot) {
+    final provider = widget as SharedModel<T>;
+    state = provider.create();
+    super.mount(parent, newSlot);
   }
 
   @override
   void unmount() {
-    (widget as SharedModel<T>).dispose?.call(_state);
+    final provider = widget as SharedModel<T>;
+    provider.dispose?.call(state);
     super.unmount();
-  }
-}
-
-class _SharedModelProvider<T> extends InheritedWidget {
-  final T state;
-
-  const _SharedModelProvider({
-    required this.state,
-    required super.child,
-    super.key,
-  });
-
-  @override
-  bool updateShouldNotify(_SharedModelProvider<T> oldWidget) {
-    // this should always return false as the state object is never replaced
-    assert(state == oldWidget.state);
-    return false;
   }
 }
 
@@ -93,8 +79,10 @@ class Locate {
   Locate(this._context);
 
   X call<X extends Object>() {
-    final result = _context.getInheritedWidgetOfExactType<_SharedModelProvider<X>>();
-    assert(result != null, 'Cannot find "$X" in the current context.');
-    return result!.state;
+    final element = _context.getElementForInheritedWidgetOfExactType<SharedModel<X>>();
+    if (element is _SharedModelElement<X>) {
+      return element.state;
+    }
+    throw FlutterError('Cannot find "$X" in the current context.');
   }
 }
