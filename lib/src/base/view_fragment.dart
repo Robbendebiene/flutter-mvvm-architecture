@@ -21,11 +21,11 @@ abstract class ViewFragment<T extends ViewModel> extends Widget {
   Widget build(BuildContext context, T viewModel);
 
   @override
-  Element createElement() => ViewFragmentElement(this);
+  Element createElement() => ViewFragmentElement<T>(this);
 }
 
 class ViewFragmentElement<T extends ViewModel> extends ComponentElement {
-  ViewFragmentElement(ViewFragment<T> widget) : super(widget);
+  ViewFragmentElement(ViewFragment<T> super.widget);
 
   @override
   Widget build() {
